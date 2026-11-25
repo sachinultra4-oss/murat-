@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "Enquiry": {
+      "title": "Wedding Enquiry",
+      "description": "Qualified wedding photography and cinematography lead submitted from the Muhurat Wedding landing page.",
+      "type": "object",
+      "properties": {
+        "coupleName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "description": "Names of the couple or primary contact."
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 24,
+          "pattern": "^[+0-9\\s\\-()]{7,24}$",
+          "description": "WhatsApp or phone number for date availability follow-up."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 5,
+          "maxLength": 160,
+          "description": "Contact email address."
+        },
+        "weddingDate": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 60,
+          "description": "Tentative or confirmed wedding dates."
+        },
+        "city": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100,
+          "description": "Wedding city or destination."
+        },
+        "services": {
+          "type": "array",
+          "description": "Selected photography or cinematography services (max 8)."
+        },
+        "budgetRange": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Preferred investment range from site config."
+        },
+        "guestCount": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Approximate guest count."
+        },
+        "story": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Venue, events schedule, and story notes."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["new", "contacted", "booked", "archived"],
+          "description": "Lead pipeline status managed by studio admin."
+        },
+        "adminNotes": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Internal studio follow-up notes."
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Acquisition channel or UTM source."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the enquiry was submitted."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the enquiry was last updated."
+        }
+      },
+      "required": [
+        "coupleName",
+        "phone",
+        "email",
+        "weddingDate",
+        "city",
+        "services",
+        "budgetRange",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "Admin User",
+      "description": "Authorized Muhurat Wedding studio administrator account.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/enquiries/{enquiryId}": {
+      "schema": { "$ref": "#/entities/Enquiry" },
+      "description": "Wedding lead enquiries submitted by couples and managed by studio administrators."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Authorized admin UIDs allowed to read and manage enquiries."
+    }
+  }
+}

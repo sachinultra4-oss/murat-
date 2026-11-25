@@ -1,0 +1,118 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && (
+          request.auth.token.email == 'sachinsgagsd@gmail.com'
+          || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        );
+    }
+
+    function isValidEnquiryFields(data) {
+      return data.keys().hasAll([
+          'coupleName',
+          'phone',
+          'email',
+          'weddingDate',
+          'city',
+          'services',
+          'budgetRange',
+          'guestCount',
+          'story',
+          'status',
+          'adminNotes',
+          'source',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'coupleName',
+          'phone',
+          'email',
+          'weddingDate',
+          'city',
+          'services',
+          'budgetRange',
+          'guestCount',
+          'story',
+          'status',
+          'adminNotes',
+          'source',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.coupleName is string && data.coupleName.size() >= 2 && data.coupleName.size() <= 120
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 24 && data.phone.matches('^[+0-9\\s\\-()]{7,24}$')
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 160 && data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$')
+        && data.weddingDate is string && data.weddingDate.size() >= 3 && data.weddingDate.size() <= 60
+        && data.city is string && data.city.size() >= 2 && data.city.size() <= 100
+        && data.services is list && data.services.size() >= 1 && data.services.size() <= 8 && data.services[0] is string && data.services[0].size() <= 80
+        && data.budgetRange is string && data.budgetRange.size() >= 2 && data.budgetRange.size() <= 80
+        && data.guestCount is string && data.guestCount.size() <= 40
+        && data.story is string && data.story.size() <= 2000
+        && data.status in ['new', 'contacted', 'booked', 'archived']
+        && data.adminNotes is string && data.adminNotes.size() <= 2000
+        && data.source is string && data.source.size() <= 80
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEnquiryCreate(data) {
+      return isValidEnquiryFields(data)
+        && data.status == 'new'
+        && data.adminNotes == ''
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidEnquiryUpdate(data) {
+      return isValidEnquiryFields(data)
+        && data.createdAt == existing().createdAt
+        && data.updatedAt == request.time;
+    }
+
+    match /enquiries/{enquiryId} {
+      allow get: if isValidId(enquiryId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(enquiryId) && isValidEnquiryCreate(incoming());
+      allow update: if isValidId(enquiryId)
+        && isAdmin()
+        && isValidEnquiryUpdate(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNotes', 'updatedAt']);
+      allow delete: if isValidId(enquiryId) && isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isAdmin() || (isSignedIn() && request.auth.token.email_verified == true && request.auth.uid == adminId));
+      allow list, create, update, delete: if false;
+    }
+
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+  }
+}
